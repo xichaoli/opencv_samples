@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.16)
 project(opencv_samples)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 add_executable(camera camera.cpp)
 
 set(OPENCV_CPP_SAMPLES_REQUIRED_DEPS
