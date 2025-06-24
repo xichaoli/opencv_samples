@@ -13,21 +13,36 @@ int main(int, char**)
 {
     Mat frame;
     cout << "Opening camera..." << endl;
-    VideoCapture capture(0, CAP_V4L2); // open the first camera
+
+    // use vaapi dec
+    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
+    // soft jpeg dec
+    //std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert ! appsink";
+
+    VideoCapture capture;
+
+    // v4l2
+    // capture.open(0, CAP_V4L2); // open the first camera
+    // GStreamer
+    // use vaapi dec
+    //capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_VAAPI});
+    // try all acceleration
+    capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
+
     if (!capture.isOpened())
     {
         cerr << "ERROR: Can't initialize camera capture" << endl;
         return 1;
     }
 
-    bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
-#ifndef NDEBUG
-    cout << "fourcc set: %d\n" << fourcc_set << endl;
-#endif
+    // bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
+    // #ifndef NDEBUG
+    // cout << "fourcc set: " << fourcc_set << endl;
+    // #endif
 
-    capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-    capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
-    capture.set(CAP_PROP_FPS, 30);
+    // capture.set(CAP_PROP_FRAME_WIDTH, 1920);
+    // capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
+    // capture.set(CAP_PROP_FPS, 30);
 
     int frame_width = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
     int frame_height = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
