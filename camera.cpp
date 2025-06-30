@@ -14,20 +14,29 @@ int main(int, char**)
     Mat frame;
     cout << "Opening camera..." << endl;
 
-    // use vaapi dec
-    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
-    // soft jpeg dec
-    //std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert ! appsink";
+    // GStreamer string
+    // use vaapi dec, need gpu support
+    // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
+    // or soft jpeg dec
+    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert ! appsink";
+    // or local file ?
+    // std::string gst_pipeline = "/home/lixc/192.mp4";
 
     VideoCapture capture;
 
     // v4l2
     // capture.open(0, CAP_V4L2); // open the first camera
+
     // GStreamer
     // use vaapi dec
     //capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_VAAPI});
     // try all acceleration
     capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
+
+    // FFmpeg
+    // capture.open("/home/lixc/192.mp4", CAP_FFMPEG);
+    // incorrect usage!
+    // capture.open(gst_pipeline, CAP_FFMPEG, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
 
     if (!capture.isOpened())
     {
@@ -35,21 +44,24 @@ int main(int, char**)
         return 1;
     }
 
+    // for v4l2
     // bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
     // #ifndef NDEBUG
     // cout << "fourcc set: " << fourcc_set << endl;
     // #endif
-
+    //
     // capture.set(CAP_PROP_FRAME_WIDTH, 1920);
     // capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
     // capture.set(CAP_PROP_FPS, 30);
+    // v4l2 end
 
     int frame_width = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
     int frame_height = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
+    double fps = capture.get(CAP_PROP_FPS);
 
     cout << "Frame width: " << frame_width << endl;
     cout << "     height: " << frame_height << endl;
-    cout << "Capturing FPS: " << capture.get(CAP_PROP_FPS) << endl;
+    cout << "Capturing FPS: " << fps << endl;
 
     cout << endl << "Press 'ESC' to quit, 'space' to toggle frame processing" << endl;
     cout << endl << "Start grabbing..." << endl;
@@ -78,9 +90,9 @@ int main(int, char**)
             constexpr int N = 10;
             int64 t1 = cv::getTickCount();
             avg_fps = static_cast<double>(getTickFrequency()) * N / (static_cast<double>(t1 - t0));
+#ifndef NDEBUG
             avg_time_per_frame = static_cast<double>(t1 - t0) * 1000.0f / (N * getTickFrequency());
             avg_process_time = static_cast<double>(processingTime) * 1000.0f / (N * getTickFrequency());
-#ifndef NDEBUG
             cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
                 << "    Average FPS: " << cv::format("%9.1f", avg_fps)
                 << "    Average time per frame: " << cv::format("%9.2f ms", avg_time_per_frame)
@@ -109,6 +121,10 @@ int main(int, char**)
             processingTime += cv::getTickCount() - tp0;
             imshow("Frame", processed);
         }
+
+        // for local file
+        // int key = waitKey(30);
+
         int key = waitKey(1);
         if (key == 27/*ESC*/)
             break;
