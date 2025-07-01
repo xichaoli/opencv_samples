@@ -14,12 +14,14 @@ int main(int, char**)
     Mat frame;
     cout << "Opening camera..." << endl;
 
-    // GStreamer string
-    // use vaapi dec, need gpu support
+    // GStreamer string, Viewed through the "gst-inspect-1.0 v4l2src" command, my device don't support video/x-jpeg
+    // use vaapi dec, need gpu support, install gstreamer1.0-vaapi
     // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
-    // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapidecodebin ! videoconvert n-threads=8 ! appsink sync=false";
+    // next incorrect at sw831 !?
+    // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! decodebin ! videoconvert n-threads=8 ! appsink sync=false";
     // or soft jpeg dec
-    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert n-threads=8 ! appsink sync=false";
+    std::string gst_pipeline =
+        "v4l2src device=/dev/video0 do-timestamp=true ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert n-threads=8 ! video/x-raw, format=BGR ! queue leaky=downstream ! appsink max-buffers=30 sync=false";
     // or local file ?
     // std::string gst_pipeline = "/home/lixc/192.mp4";
 
@@ -29,29 +31,35 @@ int main(int, char**)
     // capture.open(0, CAP_V4L2); // open the first camera
 
     // GStreamer
-    // use vaapi dec
+    // use vaapi dec, need opencv >= 4.5.2
     //capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_VAAPI});
     // try all acceleration
     // capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
     capture.open(gst_pipeline, CAP_GSTREAMER);
-
-    // FFmpeg
-    // capture.open("/home/lixc/192.mp4", CAP_FFMPEG);
-    if (capture.isOpened())
-    {
-        capture.set(CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY);
-    }
-    else
+    if (!capture.isOpened())
     {
         cerr << "ERROR: Can't initialize camera capture" << endl;
         return 1;
     }
+
+    // FFmpeg
+    // capture.open("/home/lixc/192.mp4", CAP_FFMPEG);
+    // if (capture.isOpened())
+    //{
+    //    capture.set(CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY);
+    //}
+    //else
+    // {
+    // cerr << "ERROR: Can't initialize camera capture" << endl;
+    // return 1;
+    // }
     // incorrect usage!
     // capture.open(0, CAP_FFMPEG);
     // capture.open("/dev/video0", CAP_FFMPEG);
     // capture.open(gst_pipeline, CAP_FFMPEG);
     // std::string video_file = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! filesink";
     // capture.open(video_file, CAP_FFMPEG);
+    // FFmpeg end
 
     // for v4l2
     // bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
