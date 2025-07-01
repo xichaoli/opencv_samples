@@ -17,8 +17,9 @@ int main(int, char**)
     // GStreamer string
     // use vaapi dec, need gpu support
     // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
+    // std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapidecodebin ! videoconvert n-threads=8 ! appsink sync=false";
     // or soft jpeg dec
-    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert ! appsink";
+    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert n-threads=8 ! appsink sync=false";
     // or local file ?
     // std::string gst_pipeline = "/home/lixc/192.mp4";
 
@@ -31,18 +32,26 @@ int main(int, char**)
     // use vaapi dec
     //capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_VAAPI});
     // try all acceleration
-    capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
+    // capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
+    capture.open(gst_pipeline, CAP_GSTREAMER);
 
     // FFmpeg
     // capture.open("/home/lixc/192.mp4", CAP_FFMPEG);
-    // incorrect usage!
-    // capture.open(gst_pipeline, CAP_FFMPEG, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
-
-    if (!capture.isOpened())
+    if (capture.isOpened())
+    {
+        capture.set(CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY);
+    }
+    else
     {
         cerr << "ERROR: Can't initialize camera capture" << endl;
         return 1;
     }
+    // incorrect usage!
+    // capture.open(0, CAP_FFMPEG);
+    // capture.open("/dev/video0", CAP_FFMPEG);
+    // capture.open(gst_pipeline, CAP_FFMPEG);
+    // std::string video_file = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! filesink";
+    // capture.open(video_file, CAP_FFMPEG);
 
     // for v4l2
     // bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
