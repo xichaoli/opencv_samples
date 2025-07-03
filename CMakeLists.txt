@@ -2,12 +2,15 @@ cmake_minimum_required(VERSION 3.13)
 project(opencv_samples)
 set(CMAKE_CXX_STANDARD 11)
 add_executable(camera camera.cpp)
+add_executable(camera_mpv camera_mpv.cpp)
 add_executable(video_capture_from_local_file video_capture_from_local_file.cpp)
 
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(GLUT REQUIRED)
 find_package(OpenCV REQUIRED PATHS /usr/local)
 
-foreach (target camera video_capture_from_local_file)
+foreach (target camera camera_mpv video_capture_from_local_file)
     target_include_directories(${target} PUBLIC ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(${target} PUBLIC ${OpenCV_LIBRARIES})
+    target_link_libraries(${target} PUBLIC ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${OpenCV_LIBRARIES} mpv)
 endforeach ()
-
