@@ -8,6 +8,7 @@ using namespace cv;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::string;
 
 int main(int, char**)
 {
@@ -92,6 +93,10 @@ int main(int, char**)
     char res_text[32];
     double avg_time_per_frame = 0.0;
     double avg_process_time = 0.0;
+
+    const string window_name("camera_window");
+    namedWindow(window_name, WINDOW_OPENGL | WINDOW_AUTOSIZE);
+    setOpenGlContext(window_name);
 
     for (;;)
     {
