@@ -1,72 +1,53 @@
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>  // cv::Canny()
+#include <opencv2/imgproc.hpp>
 #include <iostream>
 
 using namespace cv;
-using std::cout;
-using std::cerr;
-using std::endl;
+using namespace std;
 
 int main(int, char**)
 {
     Mat frame;
+    Mat frame_nv12;
     cout << "Opening camera..." << endl;
-
-    // use vaapi dec
-    std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! vaapijpegdec ! videoconvert ! appsink";
-    // soft jpeg dec
-    //std::string gst_pipeline = "v4l2src device=/dev/video0 ! image/jpeg, width=1920, height=1080, framerate=30/1 ! jpegdec ! videoconvert ! appsink";
-
     VideoCapture capture;
-
-    // v4l2
-    // capture.open(0, CAP_V4L2); // open the first camera
-    // GStreamer
-    // use vaapi dec
-    //capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_VAAPI});
-    // try all acceleration
-    capture.open(gst_pipeline, CAP_GSTREAMER, {CAP_PROP_HW_ACCELERATION, VIDEO_ACCELERATION_ANY});
-
+    // soft dec
+    const string gst_pipeline =
+        "v4l2src device=/dev/video0 do-timestamp=true ! image/jpeg,width=1920,height=1080,framerate=30/1 ! jpegdec ! videoconvert n-threads=8 ! video/x-raw,format=BGR ! queue leaky=downstream ! appsink sync=false";
+    // hw dec
+    //const string gst_pipeline = "v4l2src device=/dev/video0 do-timestamp=true ! image/jpeg,width=1920,height=1080,framerate=30/1 ! vaapijpegdec ! video/x-raw,format=NV12 ! queue leaky=downstream ! appsink sync=false";
+    capture.open(gst_pipeline, CAP_GSTREAMER);
     if (!capture.isOpened())
     {
         cerr << "ERROR: Can't initialize camera capture" << endl;
         return 1;
     }
-
-    // bool fourcc_set = capture.set(CAP_PROP_FOURCC, VideoWriter::fourcc('M', 'J', 'P', 'G'));
-    // #ifndef NDEBUG
-    // cout << "fourcc set: " << fourcc_set << endl;
-    // #endif
-
-    // capture.set(CAP_PROP_FRAME_WIDTH, 1920);
-    // capture.set(CAP_PROP_FRAME_HEIGHT, 1080);
-    // capture.set(CAP_PROP_FPS, 30);
-
-    int frame_width = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
-    int frame_height = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
-
-    cout << "Frame width: " << frame_width << endl;
-    cout << "     height: " << frame_height << endl;
+    const int width = static_cast<int>(capture.get(CAP_PROP_FRAME_WIDTH));
+    const int height = static_cast<int>(capture.get(CAP_PROP_FRAME_HEIGHT));
+    cout << "Frame width: " << width << endl;
+    cout << "     height: " << height << endl;
     cout << "Capturing FPS: " << capture.get(CAP_PROP_FPS) << endl;
-
     cout << endl << "Press 'ESC' to quit, 'space' to toggle frame processing" << endl;
     cout << endl << "Start grabbing..." << endl;
 
     size_t nFrames = 0;
-    bool enableProcessing = false;
-    int64 t0 = cv::getTickCount();
+    int64 t0 = getTickCount();
     int64 processingTime = 0;
-    double avg_fps = 0.0;
+    const string window_name("gl_test_window");
+    //namedWindow(window_name, WINDOW_OPENGL | WINDOW_AUTOSIZE);
+    //setOpenGlContext(window_name);
+    double fps = 0.0;
     char fps_text[32];
     char res_text[32];
-    double avg_time_per_frame = 0.0;
-    double avg_process_time = 0.0;
-
     for (;;)
     {
         capture >> frame; // read the next frame from camera
+        // for hw dec
+        //capture >> frame_nv12;
+        //cvtColor(frame_nv12, frame, COLOR_YUV2BGR_NV12);
+
         if (frame.empty())
         {
             cerr << "ERROR: Can't grab camera frame." << endl;
@@ -76,47 +57,31 @@ int main(int, char**)
         if (nFrames % 10 == 0)
         {
             constexpr int N = 10;
-            int64 t1 = cv::getTickCount();
-            avg_fps = static_cast<double>(getTickFrequency()) * N / (static_cast<double>(t1 - t0));
-            avg_time_per_frame = static_cast<double>(t1 - t0) * 1000.0f / (N * getTickFrequency());
-            avg_process_time = static_cast<double>(processingTime) * 1000.0f / (N * getTickFrequency());
-#ifndef NDEBUG
-            cout << "Frames captured: " << cv::format("%5lld", (long long int)nFrames)
-                << "    Average FPS: " << cv::format("%9.1f", avg_fps)
-                << "    Average time per frame: " << cv::format("%9.2f ms", avg_time_per_frame)
-                << "    Average processing time: " << cv::format("%9.2f ms", avg_process_time)
+            const int64 t1 = getTickCount();
+            fps = getTickFrequency() * N / static_cast<double>(t1 - t0);
+            cout << "Frames captured: " << format("%5lld", nFrames)
+                << "    Average FPS: " << format(
+                    "%9.1f", getTickFrequency() * N / static_cast<double>(t1 - t0))
+                << "    Average time per frame: " << format(
+                    "%9.2f ms", static_cast<double>(t1 - t0) * 1000.0f / (N * getTickFrequency()))
+               << "    Average processing time: " << format(
+                    "%9.2f ms", static_cast<double>(processingTime) * 1000.0f / (N * getTickFrequency()))
                 << std::endl;
-#endif
-
             t0 = t1;
             processingTime = 0;
         }
-        if (!enableProcessing)
-        {
-            sprintf(fps_text, "FPS: %.2f", avg_fps);
-            sprintf(res_text, "Resolution:%d*%d", frame_width, frame_height);
-            cv::putText(frame, fps_text, cv::Point(10, 30),
-                        cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
-            cv::putText(frame, res_text, cv::Point(10, 70),
-                        cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 0), 2);
-            imshow("Frame", frame);
-        }
-        else
-        {
-            int64 tp0 = cv::getTickCount();
-            Mat processed;
-            cv::Canny(frame, processed, 400, 1000, 5);
-            processingTime += cv::getTickCount() - tp0;
-            imshow("Frame", processed);
-        }
+        sprintf(fps_text, "FPS: %.2f", fps);
+        sprintf(res_text, "Resolution:%d*%d", width, height);
+        putText(frame, fps_text, Point(10, 30),
+                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
+        putText(frame, res_text, Point(10, 70),
+                    FONT_HERSHEY_SIMPLEX, 1.0, Scalar(255, 255, 0), 2);
+
+        imshow(window_name, frame);
+
         int key = waitKey(1);
         if (key == 27/*ESC*/)
             break;
-        if (key == 32/*SPACE*/)
-        {
-            enableProcessing = !enableProcessing;
-            cout << "Enable frame processing ('space' key): " << enableProcessing << endl;
-        }
     }
     std::cout << "Number of captured frames: " << nFrames << endl;
     return nFrames > 0 ? 0 : 1;

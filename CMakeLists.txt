@@ -1,15 +1,13 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.13)
 project(opencv_samples)
 set(CMAKE_CXX_STANDARD 11)
+
 add_executable(camera camera.cpp)
 
-set(OPENCV_CPP_SAMPLES_REQUIRED_DEPS
-        opencv_core
-        opencv_imgproc
-        opencv_imgcodecs
-        opencv_videoio
-        opencv_highgui)
+find_package(PkgConfig REQUIRED)
+find_package(OpenCV REQUIRED PATHS /usr/local)
 
-target_include_directories(camera PUBLIC /usr/local/include/opencv4)
-target_link_libraries(camera PUBLIC ${OPENCV_CPP_SAMPLES_REQUIRED_DEPS})
-target_link_directories(camera PUBLIC /usr/local/lib)
+foreach (target camera)
+    target_include_directories(${target} PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(${target} PUBLIC ${OpenCV_LIBRARIES})
+endforeach ()
