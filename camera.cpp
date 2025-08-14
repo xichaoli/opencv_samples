@@ -59,7 +59,7 @@ int main(int, char**)
             constexpr int N = 10;
             const int64 t1 = getTickCount();
             fps = getTickFrequency() * N / static_cast<double>(t1 - t0);
-            cout << "Frames captured: " << format("%5lld", nFrames)
+            cout << "Frames captured: " << format("%5zu", nFrames)
                 << "    Average FPS: " << format(
                     "%9.1f", getTickFrequency() * N / static_cast<double>(t1 - t0))
                 << "    Average time per frame: " << format(
