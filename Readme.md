@@ -18,7 +18,7 @@ cmake --build build
 3. 设置以下环境变量
 export LIBVA_DRIVER_NAME=jmgpu
 export GST_VAAPI_ALL_DRIVERS=1
-4. 以上条件都满足后会有类似下面的输出
+4. 以上条件都满足后会有类似下面的输出(图形界面终端下)
 $ gst-inspect-1.0 vaapi
 Plugin Details:
   Name                     vaapi
