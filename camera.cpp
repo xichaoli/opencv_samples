@@ -36,7 +36,7 @@ int main(int, char **) {
     size_t nFrames = 0;
     int64 t0 = getTickCount();
     int64 processingTime = 0;
-    const string window_name("gl_test_window");
+    const string window_name("camera_test_window");
 #ifdef ENABLE_HARD
     namedWindow(window_name, WINDOW_OPENGL | WINDOW_AUTOSIZE);
     setOpenGlContext(window_name);
